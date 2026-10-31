@@ -7,18 +7,25 @@
 <meta name="color-scheme" content="dark">
 <meta name="author" content="枫">
 <meta name="copyright" content="© 2026 枫 · 保留所有权利">
-<meta name="description" content="CodeScope · 代码体检：静态扫描 bug、算法、AI 痕迹与一键修复。作者：枫。">
+<meta name="description" content="CodeScope Ultra · 代码体检：静态扫描 bug、算法、AI 痕迹与一键修复。作者：枫。">
 <!-- 官方部署域名；多个域名用英文逗号分隔。 -->
 <meta name="codescope-official-hosts" content="wby0603.github.io">
 <!-- CodeScope · 作者：枫 · 官方版本 · 请勿去除页脚署名 -->
 <script>
   (() => {
     const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const noIntro = /[?&]nointro\b/.test(location.search) || reduced;
-    if (!noIntro) document.documentElement.classList.add("intro-active");
+    const noIntroParam = /[?&]nointro\b/.test(location.search);
+    const tutorialParam = new URLSearchParams(location.search).get("tutorial");
+    const isJsdom = /jsdom/i.test(navigator.userAgent);
+    let tutorialSeen = false;
+    try { tutorialSeen = localStorage.getItem("codescope.tutorial.v3") === "1"; } catch (_) { /* 忽略 */ }
+    const activation = !isJsdom && tutorialParam !== "0" && (tutorialParam === "1" || !tutorialSeen);
+    const noIntro = noIntroParam || reduced || activation;
+    if (!noIntro) document.documentElement.classList.add("intro-active", "has-intro");
+    if (activation) document.documentElement.classList.add("has-intro", "tutorial-first");
   })();
 </script>
-<title>CodeScope · 代码体检</title>
+<title>CodeScope Ultra · 代码体检</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1117'/%3E%3Cpath d='M12 9c-2.5 0-3.5 1.2-3.5 3.2v1.6c0 1.3-.6 2-1.9 2.2 1.3.2 1.9.9 1.9 2.2v1.6c0 2 1 3.2 3.5 3.2M20 9c2.5 0 3.5 1.2 3.5 3.2v1.6c0 1.3.6 2 1.9 2.2-1.3.2-1.9.9-1.9 2.2v1.6c0 2-1 3.2-3.5 3.2' fill='none' stroke='%237ee787' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="vendor/codemirror/lib/codemirror.css">
 <link rel="stylesheet" href="vendor/codemirror/addon/fold/foldgutter.css">
@@ -40,15 +47,18 @@
   <div class="brand">
     <div class="logo" id="brandLogo" aria-hidden="true"><span>{</span><span>}</span></div>
     <div class="brand-text">
-      <h1>CodeScope</h1>
+      <h1>CodeScope <span class="edition-tag" title="版本 Ultra">Ultra</span></h1>
       <p>代码体检 · bug、算法与 AI 痕迹</p>
     </div>
   </div>
   <div class="spacer"></div>
   <div class="top-badges">
+    <button class="tutorial-top-btn" id="tutorialBtn" type="button" title="重新打开新手教程" aria-label="打开新手教程">
+      <span class="tut-q">?</span><span class="tut-label">教程</span>
+    </button>
     <span class="badge"><i class="live"></i> 本地分析</span>
     <span class="badge">不上传代码</span>
-    <span class="badge ver">v1.0</span>
+    <span class="badge ver" title="版本 Ultra">Ultra</span>
   </div>
 </header>
 
@@ -210,7 +220,7 @@
   <div class="site-owner">
     <img class="site-seal" src="assets/owner-avatar.jpg" alt="枫的头像" title="作者：枫" width="38" height="38" decoding="async">
     <div class="site-meta">
-      <div><b>CodeScope</b><span> · 由 枫 构建</span></div>
+      <div><b>CodeScope</b><span class="foot-edition" title="版本 Ultra">Ultra</span><span> · 由 枫 构建</span></div>
       <small>© 2026 枫 · 保留所有权利 · 请勿去除署名</small>
     </div>
   </div>
@@ -228,13 +238,48 @@
   <div class="intro-stage" id="introStage">
     <div class="intro-logo" id="introLogo"><span>{</span><span>}</span></div>
     <div class="intro-word" id="introWord">
-      <div class="intro-name">CodeScope</div>
+      <div class="intro-name">CodeScope <span class="intro-edition">Ultra</span></div>
       <div class="intro-tag">代码体检 · bug、算法与 AI 痕迹</div>
     </div>
   </div>
   <div class="intro-bottom">
-    <span class="intro-meta">CODE INSPECTION · v1.0</span>
+    <span class="intro-meta">CODE INSPECTION · ULTRA</span>
     <button class="intro-skip" id="introSkip" type="button">跳过</button>
+  </div>
+</div>
+
+<div class="tutorial" id="tutorial" role="dialog" aria-modal="true" aria-label="CodeScope 新手教程" aria-hidden="true" tabindex="-1">
+  <div class="tutorial-veil"></div>
+  <button class="tutorial-skip" id="tutorialSkip" type="button">跳过教程</button>
+
+  <div class="hello-screen" id="helloScreen">
+    <div class="hello-word" id="helloWord">hello</div>
+    <div class="hello-sub">欢迎使用 CodeScope <span class="hello-edition">Ultra</span></div>
+    <div class="hello-hint">轻点继续 · 先看看怎么用</div>
+  </div>
+
+  <div class="tutorial-card" id="tutorialCard" hidden>
+    <div class="tutorial-main">
+      <div class="tutorial-top">
+        <span class="tutorial-kicker" id="tutorialKicker">首次设置</span>
+        <span class="tutorial-count" id="tutorialCount">01 / 04</span>
+      </div>
+      <div class="tutorial-progress" id="tutorialDots" aria-hidden="true"></div>
+      <div class="tutorial-body" id="tutorialBody">
+        <div class="tutorial-icon" id="tutorialIcon" aria-hidden="true">{ }</div>
+        <h2 id="tutorialTitle">欢迎使用 CodeScope</h2>
+        <p class="tutorial-desc" id="tutorialDesc"></p>
+        <ul class="tutorial-points" id="tutorialPoints"></ul>
+      </div>
+      <div class="tutorial-actions">
+        <button class="tutorial-back" id="tutorialBack" type="button">上一步</button>
+        <button class="tutorial-next" id="tutorialNext" type="button">下一步</button>
+      </div>
+    </div>
+    <aside class="tutorial-visual" id="tutorialVisual" aria-hidden="true">
+      <div class="tv-glow"></div>
+      <div class="tv-stage" id="tutorialVisualStage"></div>
+    </aside>
   </div>
 </div>
 
